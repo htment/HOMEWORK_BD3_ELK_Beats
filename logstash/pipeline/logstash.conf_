@@ -1,0 +1,73 @@
+input {
+  # Filebeat (TCP 5044)
+  beats {
+    port => 5044
+    tags => ["from_filebeat"]
+  }
+
+  # Прямой сбор Nginx логов
+  file {
+    path => "/var/log/nginx/access.log"
+    start_position => "beginning"
+    sincedb_path => "/dev/null"
+    tags => ["direct_nginx"]
+  }
+
+  # TCP-вход для ручных команд (порт 5000)
+  tcp {
+    port => 5000
+    codec => "line"
+    tags => ["tcp_input"]
+  }
+
+  # UDP-вход для ручных команд (порт 5140 - новый порт!)
+  udp {
+    port => 5140
+    codec => "line"
+    tags => ["udp_input"]
+  }
+}
+
+filter {
+  # Общий grok-паттерн для Nginx
+  grok {
+    match => { 
+      "message" => [
+        # Стандартный Nginx access log
+        "%{IPORHOST:remote_ip} - %{DATA:user} \[%{HTTPDATE:timestamp}\] \"%{WORD:method} %{DATA:url} HTTP/%{NUMBER:http_version}\" %{NUMBER:status} %{NUMBER:bytes_sent}",
+        # Альтернативный вариант
+        "%{COMBINEDAPACHELOG}"
+      ]
+    }
+    break_on_match => true
+    remove_field => ["message"]
+  }
+
+  # Парсинг timestamp для всех событий
+  date {
+    match => ["timestamp", "dd/MMM/yyyy:HH:mm:ss Z"]
+    target => "@timestamp"
+  }
+
+  # Специфичная обработка TCP/UDP
+  if "tcp_input" in [tags] or "udp_input" in [tags] {
+    mutate {
+      add_tag => ["custom_input"]
+      rename => {
+        "message" => "raw_message"
+      }
+    }
+  }
+}
+
+output {
+  stdout { 
+    codec => rubydebug 
+  }
+
+  elasticsearch {
+    hosts => ["http://elasticsearch:9200"]
+    # Динамическое имя индекса
+    index => "%{[@metadata][index_prefix]}-%{+YYYY.MM.dd}"
+  }
+}

@@ -3,8 +3,9 @@ filebeat.inputs:
   enabled: true
   paths:
     - /var/log/nginx/access.log
+  fields:
+    log_source: "nginx"
 
-output.elasticsearch:
-  hosts: ["elasticsearch:9200"]
-  indices:
-    - index: "filebeat-nginx-%{+yyyy.MM.dd}" 
+output.logstash:
+  hosts: ["logstash:5044"]
+  index: "filebeat"  # Добавляем метаданные для индекса

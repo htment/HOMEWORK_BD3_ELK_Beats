@@ -1,0 +1,20 @@
+input { 
+  udp {
+    port => "5044"
+  }
+}
+
+filter { 
+  grok {
+      match => { "message" => "%{IP:client} %{W0RD:error} %{NUMBER:code}" }
+  }
+}
+
+output {
+  stdout { 
+  }
+
+elasticsearch {
+    hosts => [ "i{ES_H0ST}" ]
+}
+}

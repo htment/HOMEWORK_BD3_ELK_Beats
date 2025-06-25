@@ -1,9 +1,11 @@
+version: '3'
+
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     environment:
       - discovery.type=single-node
-      - cluster.name=my_random_cluster_name
+      - cluster.name=my_art_cluster_name
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - xpack.security.enabled=false
     ports:
@@ -22,6 +24,11 @@ services:
     image: docker.elastic.co/logstash/logstash:8.12.0
     volumes:
       - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./nginx:/var/log/nginx:ro  # Общий доступ к логам Nginx
+    ports:
+      - "5044:5044"    # Filebeat
+      - "5000:5000"    # TCP input
+      - "5140:5140/udp" # UDP input
     depends_on:
       - elasticsearch
 
@@ -30,18 +37,17 @@ services:
     user: root
     volumes:
       - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      - /var/log/nginx:/var/log/nginx:ro
+      - ./nginx:/var/log/nginx:ro  # Общий доступ к логам Nginx
     depends_on:
       - elasticsearch
       - logstash
 
   nginx:
     image: nginx:latest
-    container_name: nginx
     ports:
       - "8080:80"
     volumes:
-      - ./nginx/logs:/var/log/nginx
+      - ./nginx:/var/log/nginx  # Логи сохраняются на хост
 
 volumes:
   es_data:
