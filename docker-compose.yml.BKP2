@@ -1,0 +1,46 @@
+services:
+#  elasticsearch:
+#    image: elasticsearch/elasticsearch:last
+#    environment:
+#      - discovery.type=single-node
+#      - cluster.name=my_random_cluster_name
+#      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+#      - xpack.security.enabled=false
+#    ports:
+#      - "9200:9200"
+#    volumes:
+#      - es_data:/usr/share/elasticsearch/data
+
+#  kibana:
+#    image: elasticsearch/kibana:8.12.0
+#    ports:
+#      - "5601:5601"
+#    depends_on:
+#      - elasticsearch
+
+#  logstash:
+#    image: elasticsearch/logstash:8.12.0
+#    volumes:
+#      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+#    depends_on:
+#      - elasticsearch
+
+  filebeat:
+    image: filebeat:8.12.0
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - /var/log/nginx:/var/log/nginx
+#    depends_on:
+#      - elasticsearch
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/logs:/var/log/nginx
+
+
+volumes:
+  es_data:
